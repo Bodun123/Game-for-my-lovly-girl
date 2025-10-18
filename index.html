@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Поймай сердечко 💖</title>
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      overflow: hidden;
+      height: 100vh;
+      background: linear-gradient(135deg, #ffd6e0, #ffeaf4);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      font-family: "Comic Sans MS", cursive, sans-serif;
+    }
+
+    #gameCanvas {
+      background: rgba(255, 255, 255, 0.5);
+      border: 3px solid #ff8fa3;
+      border-radius: 20px;
+      box-shadow: 0 0 20px rgba(255, 100, 150, 0.5);
+      display: none;
+    }
+
+    #message, #startScreen {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      text-align: center;
+      font-size: 1.5rem;
+      color: #d63384;
+      background: rgba(255, 255, 255, 0.9);
+      padding: 20px 30px;
+      border-radius: 20px;
+      box-shadow: 0 0 15px rgba(255, 100, 150, 0.5);
+      max-width: 80%;
+      line-height: 1.5;
+    }
+
+    #message { display: none; }
+
+    #startScreen button {
+      margin-top: 20px;
+      background: #ff4d6d;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 20px;
+      font-size: 1.2rem;
+      cursor: pointer;
+      transition: 0.3s;
+    }
+
+    #startScreen button:hover {
+      background: #ff1e4d;
+      transform: scale(1.05);
+    }
+  </style>
+</head>
+<body>
+  <canvas id="gameCanvas" width="400" height="600"></canvas>
+
+  <div id="startScreen">
+    💌 Аришик 💌<br />
+     Тебе нужно поймать случайное сердечко 💖<br />
+    <button id="startBtn">Начать игру</button>
+  </div>
+
+  <div id="message">
+    💌 Моя любовь 💌<br />
+    Я тебя люблю очень сильно, моя лавли гёрл 💖💖💖💖💖💖💖💖<br />
+    Хочу сделать тебе приятно и, надеюсь, это поднимет настроение 💕💕💕💕💕💕
+  </div>
+
+  <script>
+    const canvas = document.getElementById("gameCanvas");
+    const ctx = canvas.getContext("2d");
+    const startScreen = document.getElementById("startScreen");
+    const startBtn = document.getElementById("startBtn");
+
+    const basket = {
+      x: 170,
+      y: 550,
+      width: 60,
+      height: 30,
+      speed: 7
+    };
+
+    const hearts = [];
+    let score = 0;
+    let gameOver = false;
+    let gameStarted = false;
+
+    CanvasRenderingContext2D.prototype.roundRect = function (x, y, w, h, r) {
+      if (w < 2 * r) r = w / 2;
+      if (h < 2 * r) r = h / 2;
+      this.beginPath();
+      this.moveTo(x + r, y);
+      this.arcTo(x + w, y, x + w, y + h, r);
+      this.arcTo(x + w, y + h, x, y + h, r);
+      this.arcTo(x, y + h, x, y, r);
+      this.arcTo(x, y, x + w, y, r);
+      this.closePath();
+      return this;
+    };
+
+    function drawBasket() {
+      ctx.fillStyle = "#ff4d6d";
+      ctx.roundRect(basket.x, basket.y, basket.width, basket.height, 10).fill();
+    }
+
+    function drawHeart(x, y) {
+      ctx.save();
+      ctx.translate(x, y);
+      ctx.beginPath();
+      ctx.moveTo(0, 0);
+      ctx.bezierCurveTo(0, -10, -10, -15, -15, -5);
+      ctx.bezierCurveTo(-20, 5, 0, 20, 0, 20);
+      ctx.bezierCurveTo(0, 20, 20, 5, 15, -5);
+      ctx.bezierCurveTo(10, -15, 0, -10, 0, 0);
+      ctx.fillStyle = "#ff3366";
+      ctx.fill();
+      ctx.restore();
+    }
+
+    function createHeart() {
+      const x = Math.random() * (canvas.width - 30) + 10;
+      const speed = 2 + Math.random() * 2;
+      hearts.push({ x, y: 0, speed });
+    }
+
+    function moveHearts() {
+      hearts.forEach(h => h.y += h.speed);
+    }
+
+    function drawHearts() {
+      hearts.forEach(h => drawHeart(h.x, h.y));
+    }
+
+    function checkCatch() {
+      hearts.forEach((h, i) => {
+        if (
+          h.y + 20 >= basket.y &&
+          h.x + 10 >= basket.x &&
+          h.x <= basket.x + basket.width
+        ) {
+          hearts.splice(i, 1);
+          score++;
+          if (score >= 10) endGame();
+        }
+      });
+    }
+
+    function endGame() {
+      gameOver = true;
+      document.getElementById("message").style.display = "block";
+    }
+
+    function update() {
+      if (!gameStarted || gameOver) return;
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      moveHearts();
+      drawHearts();
+      drawBasket();
+      checkCatch();
+
+      if (Math.random() < 0.03) createHeart();
+
+      requestAnimationFrame(update);
+    }
+
+    document.addEventListener("keydown", e => {
+      if (e.key === "ArrowLeft" && basket.x > 0) basket.x -= basket.speed;
+      if (e.key === "ArrowRight" && basket.x + basket.width < canvas.width)
+        basket.x += basket.speed;
+    });
+
+    document.addEventListener("mousemove", e => {
+      const rect = canvas.getBoundingClientRect();
+      basket.x = e.clientX - rect.left - basket.width / 2;
+      if (basket.x < 0) basket.x = 0;
+      if (basket.x + basket.width > canvas.width) basket.x = canvas.width - basket.width;
+    });
+
+    startBtn.addEventListener("click", () => {
+      startScreen.style.display = "none";
+      canvas.style.display = "block";
+      gameStarted = true;
+      update();
+    });
+  </script>
+</body>
+</html>
